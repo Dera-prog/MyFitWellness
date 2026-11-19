@@ -1,0 +1,21 @@
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+const EDGE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const args=process.argv.slice(2);
+const port=9400+Math.floor(Math.random()*100);
+const proc=spawn(EDGE,[...args,`--remote-debugging-port=${port}`,`--user-data-dir=${process.env.TEMP}/e-${Date.now()}`,'about:blank'],{stdio:'ignore'});
+let page;
+for(let i=0;i<60;i++){try{const l=await(await fetch(`http://127.0.0.1:${port}/json/list`)).json();page=l.find(t=>t.type==='page');if(page)break;}catch{}await sleep(250);}
+const ws=new WebSocket(page.webSocketDebuggerUrl);let seq=0;const pend=new Map();
+ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id);}};
+await new Promise(r=>ws.onopen=r);
+const send=(method,params={})=>new Promise(res=>{const id=++seq;pend.set(id,res);ws.send(JSON.stringify({id,method,params}));});
+await send('Page.enable');
+await send('Page.navigate',{url:'http://127.0.0.1:4789/'});
+await sleep(9000);
+const r=await send('Page.captureScreenshot',{format:'png'});
+fs.writeFileSync(process.argv[2]==='--out'?'qa/try.png':'qa/try.png',Buffer.from(r.result.data,'base64'));
+const b=await send('Runtime.evaluate',{expression:'JSON.stringify({w:innerWidth,h:innerHeight,dpr:devicePixelRatio,sw:!!navigator.serviceWorker})',returnByValue:true});
+console.log(b.result.result.value);
+ws.close();proc.kill();process.exit(0);

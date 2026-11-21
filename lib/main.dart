@@ -17,7 +17,11 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(MyFitWellnessApp(state: AppState()));
+  final state = AppState();
+  runApp(MyFitWellnessApp(state: state));
+  // Restore a persisted session in the background so the splash animation is
+  // never delayed by a slow network.
+  state.init();
 }
 
 class MyFitWellnessApp extends StatelessWidget {

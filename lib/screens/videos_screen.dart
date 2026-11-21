@@ -187,6 +187,7 @@ class _VideosScreenState extends State<VideosScreen> with SingleTickerProviderSt
       return;
     }
     showAppSheet(context, _PlayerSheet(video: video));
+    state.playVideo(video);
   }
 }
 
@@ -592,6 +593,7 @@ class _PlayerSheetState extends State<_PlayerSheet> with SingleTickerProviderSta
                   weight: 0,
                   minutes: widget.video.minutes,
                   icon: Icons.play_circle_fill_rounded,
+                  iconKey: 'play_circle',
                 ),
               );
               appToast(context, 'Added to today\'s workout',

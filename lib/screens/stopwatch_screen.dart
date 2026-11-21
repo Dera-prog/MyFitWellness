@@ -80,7 +80,9 @@ class _StopwatchScreenState extends State<StopwatchScreen>
   void _finish() {
     if (_elapsed == Duration.zero) return;
     final logged = _setNumber;
+    final seconds = _elapsed.inSeconds;
     final time = _format(_elapsed, withHundredths: false);
+    AppScope.of(context).logSet('Bench press', logged, seconds);
     _reset();
     setState(() => _setNumber = logged + 1);
     appToast(context, 'Set $logged logged · $time', icon: Icons.check_circle_rounded);

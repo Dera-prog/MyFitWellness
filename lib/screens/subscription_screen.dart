@@ -111,10 +111,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       'Confirm switch',
     );
     if (!ok || !mounted) return;
-    state.setPlan(target);
-    if (target == PlanType.premium) {
-      state.setBilling(annual: annual);
-    }
+    state.switchPlan(target, annual: annual);
     appToast(
       context,
       target == PlanType.premium
@@ -129,12 +126,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final state = AppScope.of(context);
     final ok = await _confirm(
       'Cancel subscription?',
-      'You\u2019ll keep your current access until ${_renewalLabel(state, annual: _annual)}, '
-          'then move to the free General plan.',
+      'You\u2019ll move to the free General plan right away. Premium workouts and coaching lock again immediately.',
       'Cancel subscription',
     );
     if (!ok || !mounted) return;
-    state.setPlan(PlanType.general);
+    state.cancelPlan();
     appToast(context, 'Subscription cancelled', icon: Icons.info_outline_rounded);
     Navigator.of(context).maybePop();
   }

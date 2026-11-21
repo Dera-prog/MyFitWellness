@@ -59,17 +59,20 @@ class _NutritionistScreenState extends State<NutritionistScreen> {
     final text = (preset ?? _input.text).trim();
     if (text.isEmpty) return;
     final state = AppScope.of(context);
-    state.sendMessage(text);
     _input.clear();
     setState(() => _typing = true);
     _jump();
 
     _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 1400), () {
-      if (!mounted) return;
-      state.receiveCoachMessage(_replies[text.length % _replies.length]);
-      setState(() => _typing = false);
-      _jump();
+    final started = DateTime.now();
+    state.sendMessage(text).then((reply) {
+      final wait = const Duration(milliseconds: 900) - DateTime.now().difference(started);
+      _timer = Timer(wait.isNegative ? Duration.zero : wait, () {
+        if (!mounted) return;
+        state.receiveCoachMessage(reply ?? _replies[text.length % _replies.length]);
+        setState(() => _typing = false);
+        _jump();
+      });
     });
   }
 

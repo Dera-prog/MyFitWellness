@@ -678,6 +678,7 @@ Future<void> showAddGoalSheet(BuildContext context) {
                       current: 0,
                       icon: Icons.flag_rounded,
                       color: colors[colorIndex],
+                      colorKey: AppState.colorKeyFor(colors[colorIndex]),
                     ),
                   );
                   Navigator.of(context).pop();

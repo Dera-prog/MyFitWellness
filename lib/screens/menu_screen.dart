@@ -151,6 +151,7 @@ class MenuScreen extends StatelessWidget {
               label: 'Sign out',
               variant: ButtonVariant.dark,
               onTap: () {
+                AppScope.of(context).signOut();
                 Navigator.of(context).pop();
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const AuthScreen()),

@@ -16,7 +16,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController(text: '+44 7700 900123');
+  final _phone = TextEditingController();
   final _height = TextEditingController(text: '178');
   final _weight = TextEditingController(text: '78.7');
   bool _loaded = false;
@@ -28,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final state = AppScope.of(context);
     _name.text = state.name;
     _email.text = state.email;
+    _phone.text = state.phone ?? '';
     _loaded = true;
   }
 
@@ -182,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       state.updateProfile(
                         name: _name.text.trim().isEmpty ? null : _name.text.trim(),
                         email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+                        phone: _phone.text.trim(),
                       );
                       appToast(context, 'Settings saved',
                           icon: Icons.check_circle_rounded);

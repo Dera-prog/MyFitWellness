@@ -170,8 +170,9 @@ class _GymRegistrationScreenState extends State<GymRegistrationScreen> {
                             icon: Icons.info_outline_rounded);
                         return;
                       }
-                      AppScope.of(context).gym =
-                          _codeMode ? 'Gym code · ${_code.text}' : _gyms[_selected].$1;
+                      AppScope.of(context).setGym(
+                        _codeMode ? 'Gym code · ${_code.text}' : _gyms[_selected].$1,
+                      );
                       Navigator.of(context).pushReplacement(
                         CircularRevealRoute(
                           originColor: AppColors.bg,

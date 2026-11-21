@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand.dart';
 import '../widgets/circular_reveal_route.dart';
 import '../widgets/energy.dart';
+import 'main_shell.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -48,9 +50,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void _goNext() {
     if (!mounted || _leaving) return;
     _leaving = true;
+    final signedIn = AppScope.of(context).signedIn;
     Navigator.of(context).pushReplacement(
       CircularRevealRoute(
-        builder: (_) => const OnboardingScreen(),
+        builder: (_) => signedIn ? MainShell() : const OnboardingScreen(),
       ),
     );
   }

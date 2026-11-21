@@ -27,7 +27,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController(text: 'alex@myfitwellness.com');
   final _phone = TextEditingController();
-  final _password = TextEditingController(text: '••••••••');
+  final _password = TextEditingController(text: 'fitwellness');
 
   @override
   void dispose() {
@@ -51,29 +51,46 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       return;
     }
+    if (_signUp && _password.text.length < 6) {
+      appToast(context, 'Use at least 6 characters for your password',
+          icon: Icons.info_outline_rounded);
+      return;
+    }
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 900));
+
+    final state = AppScope.of(context);
+    final started = DateTime.now();
+    final error = _signUp
+        ? await state.signUp(
+            name: _name.text.trim(),
+            email: _email.text.trim(),
+            password: _password.text,
+            phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+          )
+        : await state.signIn(email: _email.text.trim(), password: _password.text);
+    final elapsed = DateTime.now().difference(started);
+    if (elapsed < const Duration(milliseconds: 700)) {
+      await Future<void>.delayed(const Duration(milliseconds: 700) - elapsed);
+    }
     if (!mounted) return;
     setState(() => _loading = false);
 
-    final state = AppScope.of(context);
-    if (_signUp) {
-      if (_name.text.trim().isNotEmpty) state.name = _name.text.trim().split(' ').first;
-      if (_email.text.trim().isNotEmpty) state.email = _email.text.trim();
-      Navigator.of(context).pushReplacement(
-        CircularRevealRoute(
-          originColor: AppColors.bg,
-          builder: (_) => const GymRegistrationScreen(),
-        ),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        CircularRevealRoute(
-          originColor: AppColors.bg,
-          builder: (_) => MainShell(),
-        ),
-      );
+    if (error != null) {
+      appToast(context, error.message, icon: Icons.error_outline_rounded);
+      return;
     }
+    if (!state.signedIn) {
+      appToast(context, 'Could not reach the server — check your connection',
+          icon: Icons.wifi_off_rounded);
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      CircularRevealRoute(
+        originColor: AppColors.bg,
+        builder: (_) => _signUp ? const GymRegistrationScreen() : MainShell(),
+      ),
+    );
   }
 
   @override

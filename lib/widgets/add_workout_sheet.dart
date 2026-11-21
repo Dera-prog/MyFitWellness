@@ -113,6 +113,7 @@ Future<void> showAddWorkoutSheet(BuildContext context) async {
                     weight: double.tryParse(weight.text) ?? 0,
                     minutes: int.tryParse(minutes.text) ?? 10,
                     icon: types[type].$1,
+                    iconKey: AppState.iconKeyFor(types[type].$1),
                   ));
                   Navigator.of(context).pop();
                   appToast(context, '${name.text.trim()} added',

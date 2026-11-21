@@ -48,7 +48,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     await Future.delayed(const Duration(milliseconds: 1700));
     if (!mounted) return;
     setState(() => _processing = false);
-    AppScope.of(context).setPlan(widget.plan);
+    AppScope.of(context).purchasePlan(widget.plan, annual: widget.annual);
     Navigator.of(context).pushReplacement(
       CircularRevealRoute(
         originColor: AppColors.ink,

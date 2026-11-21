@@ -231,7 +231,7 @@ MSYS_NO_PATHCONV=1 flutter build web --release \
 
 # 2. Assemble deploy/prod and ship it
 rm -rf deploy/prod/app && cp -r build/web deploy/prod/app
-cp site/index.html site/styles.css site/app.js site/favicon.png site/vercel.json deploy/prod/
+cp site/*.html site/styles.css site/app.js site/favicon.png site/vercel.json deploy/prod/
 cp -r site/assets deploy/prod/
 cd deploy/prod
 vercel link --project myfitwellness --scope dera19

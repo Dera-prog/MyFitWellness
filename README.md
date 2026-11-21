@@ -11,6 +11,7 @@ workout progress, goals and messages all persist.
 | --- | --- |
 | Web app | https://myfitwellness.vercel.app |
 | API | https://myfitwellness-api.vercel.app |
+| Staging web app | https://myfitwellness-staging.vercel.app |
 | Staging API | https://myfitwellness-api-staging.vercel.app |
 | Health check | https://myfitwellness-api.vercel.app/healthz |
 
@@ -218,6 +219,25 @@ vercel deploy --prod --yes --scope dera19
 The API URL is compiled into the bundle (`String.fromEnvironment`), so rebuild whenever the
 API host changes. Vercel SSO protection must stay off for both projects so the app and the
 API are publicly reachable.
+
+### Staging web client
+
+The staging frontend is the same bundle built against the staging API, hosted on its own
+project: https://myfitwellness-staging.vercel.app (`myfitwellness-staging`).
+
+```bash
+flutter build web --release \
+  --dart-define=API_BASE_URL=https://myfitwellness-api-staging.vercel.app/api
+cp -r build/web /tmp/myfitwellness-staging && rm -rf /tmp/myfitwellness-staging/.vercel
+cd /tmp/myfitwellness-staging
+vercel link --project myfitwellness-staging --scope dera19
+vercel deploy --prod --yes --scope dera19
+```
+
+Deploying from a copy keeps `build/web`'s existing link to the production `myfitwellness`
+project untouched. Rebuild production without the `--dart-define` to restore a
+production-API bundle. Staging reads the same seed as production, so the demo account works
+on both, but changes made on staging touch only the staging database.
 
 ### Staging database
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/common.dart';
 
 class CoachingScreen extends StatefulWidget {
@@ -26,7 +27,9 @@ class _CoachingScreenState extends State<CoachingScreen> {
     final trainers = state.trainers;
 
     return Scaffold(
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 900,
+        child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -226,6 +229,7 @@ class _CoachingScreenState extends State<CoachingScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

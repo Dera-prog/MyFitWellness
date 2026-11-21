@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/brand.dart';
 import '../widgets/circular_reveal_route.dart';
 import '../widgets/common.dart';
@@ -123,7 +124,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
           SafeArea(
-            child: SingleChildScrollView(
+            child: Builder(builder: (context) {
+              final formScroll = SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,10 +375,134 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ],
               ),
-            ),
+              );
+              if (!AppLayout.isDesktop(context)) return formScroll;
+              return Row(
+                children: [
+                  const Expanded(child: AuthBrandPanel()),
+                  SizedBox(width: 600, child: formScroll),
+                ],
+              );
+            }),
           ),
         ],
       ),
+    );
+  }
+}
+
+class AuthBrandPanel extends StatelessWidget {
+  const AuthBrandPanel({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF06110F), Color(0xFF123B29)],
+        ),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DotGrid(color: Colors.white.withValues(alpha: 0.05), gap: 28),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: const [
+                      BrandMark(
+                        size: 46,
+                        glow: true,
+                        ringColor: Colors.white,
+                      ),
+                      SizedBox(width: 14),
+                      BrandWordmark(fontSize: 16, dark: true, letterSpacing: 1.4),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  Text(
+                    'Train with a\nplan, not a guess.',
+                    style: AppText.display.copyWith(
+                      color: Colors.white,
+                      fontSize: 44,
+                      height: 1.05,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your gym, your coach and your progress in one place — '
+                    'workouts, goals, nutrition and streaks that follow you between devices.',
+                    style: AppText.body.copyWith(
+                      color: Colors.white.withValues(alpha: 0.62),
+                      fontSize: 14,
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  Row(
+                    children: const [
+                      _PanelStat(icon: Icons.local_fire_department_rounded, value: '6 days', label: 'streak'),
+                      SizedBox(width: 28),
+                      _PanelStat(icon: Icons.fitness_center_rounded, value: '120+', label: 'exercises'),
+                      SizedBox(width: 28),
+                      _PanelStat(icon: Icons.support_agent_rounded, value: '24/7', label: 'coach'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PanelStat extends StatelessWidget {
+  const _PanelStat({required this.icon, required this.value, required this.label});
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, size: 19, color: AppColors.lime),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+                style: AppText.h3.copyWith(color: Colors.white, fontSize: 15)),
+            Text(label,
+                style: AppText.tiny.copyWith(
+                    color: Colors.white.withValues(alpha: 0.45), fontSize: 9)),
+          ],
+        ),
+      ],
     );
   }
 }

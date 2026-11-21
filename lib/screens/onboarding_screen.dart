@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/brand.dart';
 import '../widgets/circular_reveal_route.dart';
 import '../widgets/common.dart';
@@ -165,7 +166,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AppColors.nightTop,
-        body: Stack(
+        body: Builder(builder: (context) {
+          final page = Stack(
           fit: StackFit.expand,
           children: [
             NotificationListener<ScrollNotification>(
@@ -267,7 +269,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
               ),
             ),
           ],
-        ),
+          );
+
+          if (!AppLayout.isDesktop(context)) return page;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(36),
+                    boxShadow: AppShadows.float,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(36),
+                    child: page,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

@@ -9,11 +9,19 @@ workout progress, goals and messages all persist.
 
 | What | URL |
 | --- | --- |
-| Web app | https://myfitwellness.vercel.app |
+| Marketing site | https://myfitwellness.vercel.app |
+| Web app (responsive) | https://myfitwellness.vercel.app/app/ |
+| Mobile-only build | https://myfitwellness-mobile.vercel.app |
+| Desktop-only build | https://myfitwellness-desktop.vercel.app |
 | API | https://myfitwellness-api.vercel.app |
 | Staging web app | https://myfitwellness-staging.vercel.app |
 | Staging API | https://myfitwellness-api-staging.vercel.app |
 | Health check | https://myfitwellness-api.vercel.app/healthz |
+
+The main deployment serves the public marketing site at `/` and the Flutter app under
+`/app/`. The app picks its layout from the window width: a bottom-tab phone shell below
+1000 px, and a side rail with a two-column dashboard above it. The `-mobile` and
+`-desktop` projects are the same bundle pinned to one layout for link sharing.
 
 **Demo account**
 
@@ -59,6 +67,8 @@ Flutter web (CanvasKit)          Hono API (Node 24)              PostgreSQL 17
 lib/                   Flutter app (screens, widgets, theme, data layer)
   data/api_client.dart typed HTTP client + token storage
   data/app_state.dart  AppState/AppScope state container + backend sync
+  ui/layout.dart       breakpoint + desktop frame helpers
+site/                  static marketing site (index.html, styles.css, app.js)
 backend/
   src/                 Hono app, routes, auth, migrate, seed, OpenAPI doc
   migrations/001_init.sql
@@ -206,19 +216,51 @@ Project settings that matter: framework `container`, `PORT=8080`, `CORS_ORIGIN=*
 boot the container applies `migrations/001_init.sql`, seeds the catalog and the demo
 account, then serves on `$PORT`.
 
-### Web client
+### Web client (site + app)
+
+The production project `myfitwellness` serves two things: the static marketing site at `/`
+(`site/`) and the Flutter bundle at `/app/`. `deploy/prod/` is the assembled upload — site
+files at the root, `app/` holding the Flutter build, and a `vercel.json` that rewrites
+`/app/*` to `/app/index.html` so deep links survive a refresh.
 
 ```bash
-flutter build web --release \
+# 1. Build the app for the /app/ path
+MSYS_NO_PATHCONV=1 flutter build web --release \
+  --base-href /app/ \
   --dart-define=API_BASE_URL=https://myfitwellness-api.vercel.app/api
-cd build/web
+
+# 2. Assemble deploy/prod and ship it
+rm -rf deploy/prod/app && cp -r build/web deploy/prod/app
+cp site/index.html site/styles.css site/app.js site/favicon.png site/vercel.json deploy/prod/
+cp -r site/assets deploy/prod/
+cd deploy/prod
 vercel link --project myfitwellness --scope dera19
 vercel deploy --prod --yes --scope dera19
 ```
 
+`MSYS_NO_PATHCONV=1` is required in Git-bash, otherwise `/app/` is rewritten to a Windows
+path before Flutter sees it.
+
 The API URL is compiled into the bundle (`String.fromEnvironment`), so rebuild whenever the
-API host changes. Vercel SSO protection must stay off for both projects so the app and the
-API are publicly reachable.
+API host changes. Vercel SSO protection must stay off for every web project so the pages and
+the API are publicly reachable.
+
+### Mobile and desktop builds
+
+The same Flutter source ships as two single-layout sites. `LAYOUT` pins the shell so the
+build never switches layout with the window width:
+
+```bash
+flutter build web --release --dart-define=LAYOUT=mobile \
+  --dart-define=API_BASE_URL=https://myfitwellness-api.vercel.app/api
+# copy build/web to a scratch dir, then: vercel link --project myfitwellness-mobile
+
+flutter build web --release --dart-define=LAYOUT=desktop \
+  --dart-define=API_BASE_URL=https://myfitwellness-api.vercel.app/api
+# copy build/web to a scratch dir, then: vercel link --project myfitwellness-desktop
+```
+
+Without `LAYOUT`, the app follows the window width at the 1000 px breakpoint.
 
 ### Staging web client
 

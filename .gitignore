@@ -52,6 +52,10 @@ app.*.map.json
 /qa/edge-headless/
 /qa/*.png
 /qa/*.log
+/qa/live.mjs
+
+# Assembled Vercel uploads (site + Flutter bundle + .vercel links)
+/deploy/
 
 # Figma extraction scratch
 /.ref/

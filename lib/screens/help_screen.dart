@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/common.dart';
 
 class HelpScreen extends StatefulWidget {
@@ -53,7 +54,9 @@ class _HelpScreenState extends State<HelpScreen> {
         .toList();
 
     return Scaffold(
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 800,
+        child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -219,6 +222,7 @@ class _HelpScreenState extends State<HelpScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

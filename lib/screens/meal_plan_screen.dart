@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/common.dart';
 
 class _Meal {
@@ -96,7 +97,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final plan = _plans[_day];
 
     return Scaffold(
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 820,
+        child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -231,6 +234,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

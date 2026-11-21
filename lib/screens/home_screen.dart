@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/add_workout_sheet.dart';
 import '../widgets/common.dart';
 import '../widgets/energy.dart';
+import 'nutritionist_screen.dart';
 import 'stopwatch_screen.dart';
 import 'subscription_screen.dart';
 
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    if (AppLayout.isDesktop(context)) return _desktop(context, state);
 
     return Scaffold(
       body: SafeArea(
@@ -52,14 +55,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 16),
             _HeroCard(state: state, ambient: _ambient),
             const SizedBox(height: 14),
-            _QuickActions(
-              onStopwatch: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StopwatchScreen()),
-              ),
-              onVideos: () => widget.onTab?.call(2),
-              onGoals: () => widget.onTab?.call(3),
-              onAdd: () => showAddWorkoutSheet(context),
-            ),
+            _quickActions(context, state),
             const SizedBox(height: 22),
             SectionHeader(
               title: 'Today\'s workout',
@@ -67,48 +63,142 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               onAction: () => showAddWorkoutSheet(context),
             ),
             const SizedBox(height: 10),
-            ...List.generate(state.todayWorkout.length, (i) {
-              final e = state.todayWorkout[i];
-              return SlideFadeIn(
-                delay: Duration(milliseconds: 40 * i),
-                duration: const Duration(milliseconds: 420),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Dismissible(
-                    key: ValueKey('${e.name}-$i'),
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Icon(Icons.delete_outline_rounded,
-                          color: AppColors.danger, size: 20),
-                    ),
-                    onDismissed: (_) => state.removeExercise(i),
-                    child: _ExerciseTile(
-                      exercise: e,
-                      onTap: () => state.toggleExercise(i),
-                    ),
-                  ),
-                ),
-              );
-            }),
+            ..._exerciseTiles(context, state),
             const SizedBox(height: 14),
             _WeeklyCard(state: state),
             const SizedBox(height: 14),
-            if (!state.isPremium)
-              _PremiumBanner(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
-                ),
-              )
-            else
-              _PremiumActive(),
+            _premiumSlot(context, state),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _desktop(BuildContext context, AppState state) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: AppLayout.contentMax),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(32, 24, 32, 48),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Header(state: state, greeting: _greeting),
+                    const SizedBox(height: 24),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 250,
+                                child: _HeroCard(state: state, ambient: _ambient),
+                              ),
+                              const SizedBox(height: 16),
+                              _quickActions(context, state),
+                              const SizedBox(height: 28),
+                              SectionHeader(
+                                title: 'Today\'s workout',
+                                action: 'Add',
+                                onAction: () => showAddWorkoutSheet(context),
+                              ),
+                              const SizedBox(height: 12),
+                              ..._exerciseTiles(context, state),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 26),
+                        SizedBox(
+                          width: 356,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _WeeklyCard(state: state),
+                              const SizedBox(height: 16),
+                              _premiumSlot(context, state),
+                              const SizedBox(height: 16),
+                              _CoachCard(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const NutritionistScreen()),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _GoalsPreview(
+                                state: state,
+                                onViewAll: () => widget.onTab?.call(3),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _quickActions(BuildContext context, AppState state) {
+    return _QuickActions(
+      onStopwatch: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const StopwatchScreen()),
+      ),
+      onVideos: () => widget.onTab?.call(2),
+      onGoals: () => widget.onTab?.call(3),
+      onAdd: () => showAddWorkoutSheet(context),
+    );
+  }
+
+  List<Widget> _exerciseTiles(BuildContext context, AppState state) {
+    return List.generate(state.todayWorkout.length, (i) {
+      final e = state.todayWorkout[i];
+      return SlideFadeIn(
+        delay: Duration(milliseconds: 40 * i),
+        duration: const Duration(milliseconds: 420),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Dismissible(
+            key: ValueKey('${e.name}-$i'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.danger, size: 20),
+            ),
+            onDismissed: (_) => state.removeExercise(i),
+            child: _ExerciseTile(
+              exercise: e,
+              onTap: () => state.toggleExercise(i),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _premiumSlot(BuildContext context, AppState state) {
+    if (state.isPremium) return _PremiumActive();
+    return _PremiumBanner(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
       ),
     );
   }
@@ -823,4 +913,157 @@ class _PremiumActive extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CoachCard extends StatelessWidget {
+  const _CoachCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF234E7D), Color(0xFF16365C)],
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.navy.withValues(alpha: 0.24),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.support_agent_rounded,
+                      size: 20, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Ask your coach',
+                      style: AppText.h3.copyWith(color: Colors.white, fontSize: 15)),
+                ),
+                const Icon(Icons.arrow_forward_rounded,
+                    size: 18, color: Colors.white70),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Nutrition, recovery and training questions answered in seconds.',
+              style: AppText.small.copyWith(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 10.5,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalsPreview extends StatelessWidget {
+  const _GoalsPreview({required this.state, required this.onViewAll});
+
+  final AppState state;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final goals = state.goals.take(3).toList();
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Goals', style: AppText.h3.copyWith(fontSize: 16)),
+              const Spacer(),
+              GestureDetector(
+                onTap: onViewAll,
+                behavior: HitTestBehavior.opaque,
+                child: Text('View all',
+                    style: AppText.tiny.copyWith(
+                        fontSize: 10, color: AppColors.greenDeep)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (goals.isEmpty)
+            Text('No goals yet — add one from the Goals tab.',
+                style: AppText.small.copyWith(fontSize: 11))
+          else
+            for (var i = 0; i < goals.length; i++) ...[
+              _GoalRow(goal: goals[i]),
+              if (i != goals.length - 1) const SizedBox(height: 14),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalRow extends StatelessWidget {
+  const _GoalRow({required this.goal});
+
+  final FitnessGoal goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final span = goal.target - goal.start;
+    final value = span == 0
+        ? 0.0
+        : ((goal.current - goal.start) / span).clamp(0.0, 1.0).toDouble();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(goal.icon, size: 14, color: goal.color),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(goal.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.label.copyWith(fontSize: 11)),
+            ),
+            Text(
+              '${_short(goal.current)}/${_short(goal.target)} ${goal.unit}',
+              style: AppText.tiny.copyWith(fontSize: 9),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: LinearProgressIndicator(
+            value: value,
+            minHeight: 5,
+            backgroundColor: AppColors.surfaceSunken,
+            valueColor: AlwaysStoppedAnimation(goal.color),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _short(double v) => v == v.roundToDouble() ? '${v.round()}' : v.toStringAsFixed(1);
 }

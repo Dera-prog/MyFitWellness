@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/common.dart';
 import 'meal_plan_screen.dart';
 
@@ -82,7 +83,9 @@ class _NutritionistScreenState extends State<NutritionistScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 820,
+        child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -236,6 +239,7 @@ class _NutritionistScreenState extends State<NutritionistScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

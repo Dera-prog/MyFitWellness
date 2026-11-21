@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/circular_reveal_route.dart';
 import '../widgets/common.dart';
 import 'main_shell.dart';
@@ -143,7 +144,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         _annual == state.annualBilling;
 
     return Scaffold(
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 800,
+        child: SafeArea(
         child: Column(
           children: [
             Padding(
@@ -337,6 +340,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

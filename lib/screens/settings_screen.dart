@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../ui/layout.dart';
 import '../widgets/common.dart';
 import 'help_screen.dart';
 import 'subscription_screen.dart';
@@ -47,7 +48,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final state = AppScope.of(context);
 
     return Scaffold(
-      body: SafeArea(
+      body: WideFrame(
+        maxWidth: 760,
+        child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -208,6 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

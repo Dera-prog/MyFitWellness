@@ -218,6 +218,23 @@ The API URL is compiled into the bundle (`String.fromEnvironment`), so rebuild w
 API host changes. Vercel SSO protection must stay off for both projects so the app and the
 API are publicly reachable.
 
+### Staging database
+
+A second Neon store (`myfitwellness-db-staging`) is connected to the
+`myfitwellness-api-staging` Vercel project, so staging writes never reach production. The
+schema and seed catalog are already applied. Push later schema changes by pointing the
+backend CLI at the staging `DATABASE_URL` from that project:
+
+```bash
+cd backend
+npm run migrate     # or: node dist/cli.js migrate
+npm run seed        # idempotent catalog + demo user
+```
+
+The staging API project is provisioned but not deployed; run `vercel deploy --prod` from
+`backend/` when a staging URL is needed. Any pulled `.env*` file holds real credentials —
+keep it out of git and delete it after use.
+
 ---
 
 ## Roadmap

@@ -11,6 +11,7 @@ workout progress, goals and messages all persist.
 | --- | --- |
 | Web app | https://myfitwellness.vercel.app |
 | API | https://myfitwellness-api.vercel.app |
+| Staging API | https://myfitwellness-api-staging.vercel.app |
 | Health check | https://myfitwellness-api.vercel.app/healthz |
 
 **Demo account**
@@ -231,9 +232,11 @@ npm run migrate     # or: node dist/cli.js migrate
 npm run seed        # idempotent catalog + demo user
 ```
 
-The staging API project is provisioned but not deployed; run `vercel deploy --prod` from
-`backend/` when a staging URL is needed. Any pulled `.env*` file holds real credentials —
-keep it out of git and delete it after use.
+The staging API project is deployed at https://myfitwellness-api-staging.vercel.app
+(`myfitwellness-api-staging`). Redeploy it with `vercel link --project
+myfitwellness-api-staging --scope dera19` followed by `vercel deploy --prod --yes`, then
+relink `backend/` to `myfitwellness-api` before shipping to production. Any pulled `.env*`
+file holds real credentials — keep it out of git and delete it after use.
 
 ---
 

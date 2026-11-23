@@ -10,6 +10,7 @@ import 'coaching_screen.dart';
 import 'help_screen.dart';
 import 'meal_plan_screen.dart';
 import 'nutritionist_screen.dart';
+import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'subscription_screen.dart';
 
@@ -34,8 +35,10 @@ class MenuScreen extends StatelessWidget {
                     children: [
                       Text('Menu', style: AppText.h1.copyWith(fontSize: 26)),
                       const SizedBox(height: 3),
-                      Text('Your account & coaching',
-                          style: AppText.small.copyWith(fontSize: 12)),
+                      Text(
+                        'Your account & coaching',
+                        style: AppText.small.copyWith(fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -101,9 +104,7 @@ class MenuScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Center(
-              child: BrandWordmark(fontSize: 18, dark: false),
-            ),
+            const Center(child: BrandWordmark(fontSize: 18, dark: false)),
             const SizedBox(height: 6),
             Center(
               child: Text(
@@ -136,7 +137,11 @@ class MenuScreen extends StatelessWidget {
                 color: AppColors.danger.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.logout_rounded, color: AppColors.danger, size: 24),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppColors.danger,
+                size: 24,
+              ),
             ),
             const SizedBox(height: 14),
             Text('Sign out?', style: AppText.h2.copyWith(fontSize: 19)),
@@ -162,8 +167,10 @@ class MenuScreen extends StatelessWidget {
             const SizedBox(height: 6),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Stay here',
-                  style: AppText.small.copyWith(fontWeight: FontWeight.w600)),
+              child: Text(
+                'Stay here',
+                style: AppText.small.copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -181,6 +188,9 @@ class _ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppCard(
       elevated: true,
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
       child: Row(
         children: [
           Container(
@@ -198,7 +208,9 @@ class _ProfileCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                state.name.isEmpty ? 'A' : state.name.characters.first.toUpperCase(),
+                state.name.isEmpty
+                    ? 'A'
+                    : state.name.characters.first.toUpperCase(),
                 style: AppText.h2.copyWith(color: Colors.white, fontSize: 22),
               ),
             ),
@@ -216,10 +228,15 @@ class _ProfileCard extends StatelessWidget {
                   children: [
                     LevelChip(
                       label: state.isPremium ? 'Premium' : 'General',
-                      color: state.isPremium ? AppColors.greenDeep : AppColors.muted,
+                      color: state.isPremium
+                          ? AppColors.greenDeep
+                          : AppColors.muted,
                     ),
                     const SizedBox(width: 6),
-                    LevelChip(label: state.gym.split(' ').first, color: AppColors.navy),
+                    LevelChip(
+                      label: state.gym.split(' ').first,
+                      color: AppColors.navy,
+                    ),
                   ],
                 ),
               ],
@@ -228,9 +245,9 @@ class _ProfileCard extends StatelessWidget {
           AppIconButton(
             icon: Icons.edit_outlined,
             size: 38,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
         ],
       ),
@@ -265,7 +282,11 @@ class _MembershipCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.card_membership_rounded, size: 17, color: AppColors.lime),
+              const Icon(
+                Icons.card_membership_rounded,
+                size: 17,
+                color: AppColors.lime,
+              ),
               const SizedBox(width: 8),
               Text(
                 state.isPremium ? 'PREMIUM MEMBER' : 'GENERAL MEMBER',
@@ -314,10 +335,17 @@ class _MembershipCard extends StatelessWidget {
                 children: [
                   Text(
                     state.isPremium ? 'Manage plan' : 'Upgrade to Premium',
-                    style: AppText.label.copyWith(color: Colors.white, fontSize: 10.5),
+                    style: AppText.label.copyWith(
+                      color: Colors.white,
+                      fontSize: 10.5,
+                    ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.lime),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: AppColors.lime,
+                  ),
                 ],
               ),
             ),
@@ -348,7 +376,11 @@ class _CoachingGrid extends StatelessWidget {
         'Message your dietitian',
         Icons.forum_rounded,
         const Color(0xFF7A4E2D),
-        () => _pushPremium(context, const NutritionistScreen(), 'Nutritionist chat'),
+        () => _pushPremium(
+          context,
+          const NutritionistScreen(),
+          'Nutritionist chat',
+        ),
       ),
       (
         'Meal plans',
@@ -362,7 +394,8 @@ class _CoachingGrid extends StatelessWidget {
         'Book your next block',
         Icons.calendar_month_rounded,
         const Color(0xFF6A3FB0),
-        () => _pushPremium(context, const CoachingScreen(), 'Coaching sessions'),
+        () =>
+            _pushPremium(context, const CoachingScreen(), 'Coaching sessions'),
       ),
     ];
 
@@ -421,21 +454,34 @@ class _CoachingGrid extends StatelessWidget {
                     ),
                     const Spacer(),
                     if (locked)
-                      const Icon(Icons.chevron_right_rounded,
-                          size: 17, color: AppColors.muted)
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 17,
+                        color: AppColors.muted,
+                      )
                     else
-                      const Icon(Icons.arrow_outward_rounded,
-                          size: 15, color: AppColors.greenDeep),
+                      const Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 15,
+                        color: AppColors.greenDeep,
+                      ),
                   ],
                 ),
                 const Spacer(),
-                Text(item.$1,
-                    style: AppText.bodyStrong.copyWith(fontSize: 12.5, height: 1.25)),
+                Text(
+                  item.$1,
+                  style: AppText.bodyStrong.copyWith(
+                    fontSize: 12.5,
+                    height: 1.25,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(item.$2,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.tiny.copyWith(fontSize: 9.5)),
+                Text(
+                  item.$2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.tiny.copyWith(fontSize: 9.5),
+                ),
               ],
             ),
           ),

@@ -58,8 +58,10 @@ class FitnessGoal {
     return ((current - start) / (target - start)).clamp(0.0, 1.0);
   }
 
-  String get currentLabel => '${current.toStringAsFixed(current % 1 == 0 ? 0 : 1)}$unit';
-  String get targetLabel => '${target.toStringAsFixed(target % 1 == 0 ? 0 : 1)}$unit';
+  String get currentLabel =>
+      '${current.toStringAsFixed(current % 1 == 0 ? 0 : 1)}$unit';
+  String get targetLabel =>
+      '${target.toStringAsFixed(target % 1 == 0 ? 0 : 1)}$unit';
 }
 
 class WorkoutEntry {
@@ -129,6 +131,12 @@ class ChatMessage {
 
 enum PlanType { general, premium }
 
+enum DashboardStage { newUser, general, premium }
+
+/// Lets the Profile screen flip the home dashboard between account states so
+/// every variant can be reviewed without touching the account.
+enum DashboardPreview { auto, newUser, general, premium }
+
 class AppState extends ChangeNotifier {
   final ApiClient api = ApiClient();
   bool offline = false;
@@ -140,6 +148,9 @@ class AppState extends ChangeNotifier {
   bool annualBilling = false;
   DateTime? planStartedAt;
   DateTime? planRenewsAt;
+  DateTime? joinedAt;
+  DashboardPreview preview = DashboardPreview.auto;
+  bool _freshAccount = false;
   bool reminders = true;
   bool goalCheckIns = true;
   bool renewalAlerts = true;
@@ -378,7 +389,8 @@ class AppState extends ChangeNotifier {
       time: '09:14',
     ),
     ChatMessage(
-      text: 'Let us fix that. Aim for 35g protein within an hour — Greek yogurt, eggs or a shake all work. I will add options to your plan.',
+      text:
+          'Let us fix that. Aim for 35g protein within an hour — Greek yogurt, eggs or a shake all work. I will add options to your plan.',
       fromMe: false,
       time: '09:15',
     ),
@@ -392,6 +404,35 @@ class AppState extends ChangeNotifier {
   int get todayMinutes => todayWorkout.fold(0, (a, e) => a + e.minutes);
 
   bool get isPremium => plan == PlanType.premium;
+
+  /// A brand-new account: just registered in this session, or it has no
+  /// workout, goal or history rows yet.
+  bool get isNewUser =>
+      _freshAccount ||
+      (history.isEmpty && goals.isEmpty && todayWorkout.isEmpty);
+
+  DashboardStage get dashboardStage {
+    switch (preview) {
+      case DashboardPreview.newUser:
+        return DashboardStage.newUser;
+      case DashboardPreview.general:
+        return DashboardStage.general;
+      case DashboardPreview.premium:
+        return DashboardStage.premium;
+      case DashboardPreview.auto:
+        if (isNewUser) return DashboardStage.newUser;
+        return isPremium ? DashboardStage.premium : DashboardStage.general;
+    }
+  }
+
+  void setDashboardPreview(DashboardPreview value) {
+    preview = value;
+    notifyListeners();
+  }
+
+  int get totalSessions => history.length;
+
+  int get totalMinutes => history.fold(0, (sum, entry) => sum + entry.minutes);
 
   void toggleExercise(int index) {
     if (index < 0 || index >= todayWorkout.length) return;
@@ -408,6 +449,7 @@ class AppState extends ChangeNotifier {
 
   void addExercise(Exercise exercise) {
     todayWorkout.add(exercise);
+    _freshAccount = false;
     notifyListeners();
     _sync(() async {
       final data = await api.addWorkoutItem(
@@ -438,6 +480,7 @@ class AppState extends ChangeNotifier {
 
   void addGoal(FitnessGoal goal) {
     goals.add(goal);
+    _freshAccount = false;
     notifyListeners();
     _sync(() async {
       final data = await api.addGoal(
@@ -494,7 +537,12 @@ class AppState extends ChangeNotifier {
     });
   }
 
-  void updateProfile({String? name, String? email, String? gym, String? phone}) {
+  void updateProfile({
+    String? name,
+    String? email,
+    String? gym,
+    String? phone,
+  }) {
     if (name != null) this.name = name;
     if (email != null) this.email = email;
     if (gym != null) this.gym = gym;
@@ -521,12 +569,14 @@ class AppState extends ChangeNotifier {
 
   Future<String?> sendMessage(String text) async {
     final now = DateTime.now();
-    chat.add(ChatMessage(
-      text: text,
-      fromMe: true,
-      time:
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-    ));
+    chat.add(
+      ChatMessage(
+        text: text,
+        fromMe: true,
+        time:
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+      ),
+    );
     notifyListeners();
     if (!api.hasToken) return null;
     try {
@@ -544,12 +594,14 @@ class AppState extends ChangeNotifier {
 
   void receiveCoachMessage(String text) {
     final now = DateTime.now();
-    chat.add(ChatMessage(
-      text: text,
-      fromMe: false,
-      time:
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
-    ));
+    chat.add(
+      ChatMessage(
+        text: text,
+        fromMe: false,
+        time:
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+      ),
+    );
     notifyListeners();
   }
 
@@ -586,7 +638,9 @@ class AppState extends ChangeNotifier {
     if (workout is List) {
       todayWorkout
         ..clear()
-        ..addAll(workout.whereType<Map<String, dynamic>>().map((row) => Exercise(
+        ..addAll(
+          workout.whereType<Map<String, dynamic>>().map(
+            (row) => Exercise(
               id: row['id'] as String?,
               name: (row['name'] as String?) ?? 'Exercise',
               detail: (row['detail'] as String?) ?? '',
@@ -597,70 +651,85 @@ class AppState extends ChangeNotifier {
               icon: iconForKey(row['icon'] as String?),
               iconKey: (row['icon'] as String?) ?? 'fitness_center',
               done: row['done'] == true,
-            )));
+            ),
+          ),
+        );
     }
 
     final history = data['history'];
     if (history is List) {
       this.history
         ..clear()
-        ..addAll(history.whereType<Map<String, dynamic>>().map((row) {
-          final date = DateTime.tryParse('${row['date']}T12:00:00') ?? DateTime.now();
-          return WorkoutEntry(
-            title: (row['title'] as String?) ?? 'Session',
-            date: date,
-            minutes: _intOf(row['minutes']),
-            exercises: _intOf(row['exercises']),
-            kcal: _intOf(row['kcal']),
-            intensity: _doubleOf(row['intensity']),
-          );
-        }));
+        ..addAll(
+          history.whereType<Map<String, dynamic>>().map((row) {
+            final date =
+                DateTime.tryParse('${row['date']}T12:00:00') ?? DateTime.now();
+            return WorkoutEntry(
+              title: (row['title'] as String?) ?? 'Session',
+              date: date,
+              minutes: _intOf(row['minutes']),
+              exercises: _intOf(row['exercises']),
+              kcal: _intOf(row['kcal']),
+              intensity: _doubleOf(row['intensity']),
+            );
+          }),
+        );
     }
 
     final goals = data['goals'];
     if (goals is List) {
       this.goals
         ..clear()
-        ..addAll(goals.whereType<Map<String, dynamic>>().map((row) {
-          final iconKey = row['icon'] as String?;
-          final colorKey = (row['color'] as String?) ?? 'green';
-          return FitnessGoal(
-            id: row['id'] as String?,
-            title: (row['title'] as String?) ?? 'Goal',
-            unit: (row['unit'] as String?) ?? '',
-            start: _doubleOf(row['start']),
-            target: _doubleOf(row['target']),
-            current: _doubleOf(row['current']),
-            icon: iconForKey(iconKey),
-            color: colorForKey(colorKey),
-            colorKey: colorKey,
-          );
-        }));
+        ..addAll(
+          goals.whereType<Map<String, dynamic>>().map((row) {
+            final iconKey = row['icon'] as String?;
+            final colorKey = (row['color'] as String?) ?? 'green';
+            return FitnessGoal(
+              id: row['id'] as String?,
+              title: (row['title'] as String?) ?? 'Goal',
+              unit: (row['unit'] as String?) ?? '',
+              start: _doubleOf(row['start']),
+              target: _doubleOf(row['target']),
+              current: _doubleOf(row['current']),
+              icon: iconForKey(iconKey),
+              color: colorForKey(colorKey),
+              colorKey: colorKey,
+            );
+          }),
+        );
     }
 
     final videos = data['videos'];
     if (videos is List) {
       this.videos
         ..clear()
-        ..addAll(videos.whereType<Map<String, dynamic>>().map((row) => VideoItem(
+        ..addAll(
+          videos.whereType<Map<String, dynamic>>().map(
+            (row) => VideoItem(
               id: row['id'] as String?,
               title: (row['title'] as String?) ?? 'Session',
               level: (row['level'] as String?) ?? 'Beginner',
               minutes: _intOf(row['minutes']),
               premium: row['premium'] == true,
-              image: (row['image'] as String?) ?? 'assets/images/onboard_train.jpg',
+              image:
+                  (row['image'] as String?) ??
+                  'assets/images/onboard_train.jpg',
               focus: (row['focus'] as String?) ?? '',
-            )));
+            ),
+          ),
+        );
     }
 
     final coaches = data['coaches'];
     if (coaches is List) {
       trainers
         ..clear()
-        ..addAll(coaches
-            .whereType<Map<String, dynamic>>()
-            .where((row) => (row['role'] ?? 'trainer') == 'trainer')
-            .map((row) => Trainer(
+        ..addAll(
+          coaches
+              .whereType<Map<String, dynamic>>()
+              .where((row) => (row['role'] ?? 'trainer') == 'trainer')
+              .map(
+                (row) => Trainer(
                   key: row['key'] as String?,
                   name: (row['name'] as String?) ?? 'Coach',
                   specialty: (row['specialty'] as String?) ?? '',
@@ -668,21 +737,27 @@ class AppState extends ChangeNotifier {
                   sessions: _intOf(row['sessions']),
                   initials: (row['initials'] as String?) ?? '',
                   color: colorFromHex(row['color'] as String?),
-                )));
+                ),
+              ),
+        );
     }
 
     final messages = data['messages'];
     if (messages is List) {
       chat
         ..clear()
-        ..addAll(messages
-            .whereType<Map<String, dynamic>>()
-            .where((row) => row['coach_key'] == 'amara')
-            .map((row) => ChatMessage(
+        ..addAll(
+          messages
+              .whereType<Map<String, dynamic>>()
+              .where((row) => row['coach_key'] == 'amara')
+              .map(
+                (row) => ChatMessage(
                   text: (row['body'] as String?) ?? '',
                   fromMe: row['from_me'] == true,
                   time: _timeOf(row['created_at']),
-                )));
+                ),
+              ),
+        );
     }
 
     final stats = data['stats'];
@@ -699,6 +774,7 @@ class AppState extends ChangeNotifier {
     annualBilling = user['annualBilling'] == true;
     planStartedAt = _dateOf(user['planStartedAt']);
     planRenewsAt = _dateOf(user['planRenewsAt']);
+    joinedAt = _dateOf(user['createdAt']);
     gym = (user['gym'] as String?) ?? gym;
     reminders = user['reminders'] != false;
     goalCheckIns = user['goalCheckIns'] != false;
@@ -708,9 +784,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<ApiException?> signIn({required String email, required String password}) async {
+  Future<ApiException?> signIn({
+    required String email,
+    required String password,
+  }) async {
     try {
-      final data = await api.login(email: email.trim().toLowerCase(), password: password);
+      final data = await api.login(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
       await api.saveToken(data['token'] as String?);
       await refresh();
       return null;
@@ -742,6 +824,7 @@ class AppState extends ChangeNotifier {
       );
       await api.saveToken(data['token'] as String?);
       await refresh();
+      _freshAccount = true;
       return null;
     } on ApiException catch (error) {
       if (error.isNetwork) {
@@ -761,22 +844,26 @@ class AppState extends ChangeNotifier {
     }
     await api.saveToken(null);
     offline = false;
+    preview = DashboardPreview.auto;
+    _freshAccount = false;
     notifyListeners();
   }
 
   void _sync(Future<void> Function() action) {
-    action().then((_) {
-      if (offline) {
-        offline = false;
-        notifyListeners();
-      }
-    }).catchError((Object error) {
-      if (error is ApiException && error.status == 401) {
-        api.saveToken(null);
-      }
-      offline = true;
-      notifyListeners();
-    });
+    action()
+        .then((_) {
+          if (offline) {
+            offline = false;
+            notifyListeners();
+          }
+        })
+        .catchError((Object error) {
+          if (error is ApiException && error.status == 401) {
+            api.saveToken(null);
+          }
+          offline = true;
+          notifyListeners();
+        });
   }
 
   void purchasePlan(PlanType value, {required bool annual}) {
@@ -810,7 +897,11 @@ class AppState extends ChangeNotifier {
 
   void logSet(String exercise, int setNumber, int seconds) {
     _sync(() async {
-      await api.logSet(exercise: exercise, setNumber: setNumber, seconds: seconds);
+      await api.logSet(
+        exercise: exercise,
+        setNumber: setNumber,
+        seconds: seconds,
+      );
     });
   }
 
@@ -916,7 +1007,7 @@ class AppState extends ChangeNotifier {
 
 class AppScope extends InheritedNotifier<AppState> {
   const AppScope({super.key, required AppState state, required super.child})
-      : super(notifier: state);
+    : super(notifier: state);
 
   static AppState of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();

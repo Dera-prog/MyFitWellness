@@ -30,7 +30,15 @@ http
     let file = path.join(root, url);
     if (url.endsWith('/')) file = path.join(file, 'index.html');
     fs.stat(file, (err, stat) => {
-      if (err || stat.isDirectory()) file = path.join(root, 'index.html');
+      if (err || stat.isDirectory()) {
+        const siteRoot =
+          path.basename(root) === 'site' ? root : path.join(root, 'site');
+        const wantsSite = url === '/site' || url.startsWith('/site/');
+        file =
+          wantsSite || path.basename(root) === 'site'
+            ? path.join(siteRoot, 'index.html')
+            : path.join(root, 'index.html');
+      }
       fs.readFile(file, (readErr, data) => {
         if (readErr) {
           res.writeHead(404);

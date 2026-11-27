@@ -461,8 +461,11 @@ class _CheckInCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxMinutes =
-        state.weeklyMinutes.fold<double>(1, (a, b) => b > a ? b : a);
+    final week = state.weekMinutes;
+    final maxMinutes = week.fold<double>(0, (a, b) => b > a ? b : a);
+    final scale = maxMinutes <= 0 ? 1.0 : maxMinutes;
+    final today = DateTime.now().weekday - 1;
+    final activeDays = week.where((m) => m > 0).length;
 
     return AppCard(
       padding: const EdgeInsets.all(18),
@@ -483,9 +486,9 @@ class _CheckInCard extends StatelessWidget {
             height: 74,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(state.weeklyMinutes.length, (i) {
-                final v = state.weeklyMinutes[i];
-                final active = i == 6;
+              children: List.generate(week.length, (i) {
+                final v = week[i];
+                final active = i == today;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -501,7 +504,7 @@ class _CheckInCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: v / maxMinutes),
+                          tween: Tween(begin: 0, end: v / scale),
                           duration: Duration(milliseconds: 600 + i * 70),
                           curve: Curves.easeOutCubic,
                           builder: (context, h, _) => Container(
@@ -548,7 +551,11 @@ class _CheckInCard extends StatelessWidget {
                 const SizedBox(width: 9),
                 Expanded(
                   child: Text(
-                    'You hit 4 of 6 training days. One more session keeps your streak alive.',
+                    activeDays == 0
+                        ? 'No sessions logged this week yet. One workout puts you on the board.'
+                        : activeDays >= 5
+                            ? 'You trained $activeDays days this week. Strong week — keep it rolling.'
+                            : 'You trained $activeDays ${activeDays == 1 ? 'day' : 'days'} this week. One more session keeps your streak alive.',
                     style: AppText.small.copyWith(
                       fontSize: 11.5,
                       color: AppColors.inkSoft,

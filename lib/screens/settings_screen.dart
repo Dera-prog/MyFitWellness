@@ -18,9 +18,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  final _height = TextEditingController(text: '178');
-  final _weight = TextEditingController(text: '78.7');
+  final _height = TextEditingController();
+  final _weight = TextEditingController();
   bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _height.addListener(_recalcBmi);
+    _weight.addListener(_recalcBmi);
+  }
+
+  void _recalcBmi() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void didChangeDependencies() {
@@ -30,8 +41,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _name.text = state.name;
     _email.text = state.email;
     _phone.text = state.phone ?? '';
+    final height = state.bodyHeightCm;
+    final weight = state.bodyWeightKg;
+    if (height != null) _height.text = _trimNumber(height);
+    if (weight != null) _weight.text = _trimNumber(weight);
     _loaded = true;
+    if (height == null && weight == null) {
+      state.loadBodyMetrics().then((_) {
+        if (!mounted) return;
+        final loadedHeight = state.bodyHeightCm;
+        final loadedWeight = state.bodyWeightKg;
+        setState(() {
+          if (loadedHeight != null && _height.text.isEmpty) {
+            _height.text = _trimNumber(loadedHeight);
+          }
+          if (loadedWeight != null && _weight.text.isEmpty) {
+            _weight.text = _trimNumber(loadedWeight);
+          }
+        });
+      });
+    }
   }
+
+  String _trimNumber(double value) =>
+      value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
 
   @override
   void dispose() {
@@ -46,6 +79,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final heightCm = double.tryParse(_height.text.trim().replaceAll(',', '.'));
+    final weightKg = double.tryParse(_weight.text.trim().replaceAll(',', '.'));
+    String bmiLabel = 'Add height and weight to see your BMI';
+    var bmiHealthy = true;
+    if (heightCm != null && heightCm > 50 && weightKg != null && weightKg > 10) {
+      final bmi = weightKg / ((heightCm / 100) * (heightCm / 100));
+      final category = bmi < 18.5
+          ? 'underweight'
+          : bmi < 25
+              ? 'healthy range'
+              : bmi < 30
+                  ? 'overweight'
+                  : 'obese range';
+      bmiLabel = 'BMI ${bmi.toStringAsFixed(1)} · $category';
+      bmiHealthy = bmi >= 18.5 && bmi < 25;
+    }
 
     return Scaffold(
       body: WideFrame(
@@ -80,9 +129,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Row(
                           children: [
-                            Expanded(child: _field('Height (cm)', _height, numeric: true)),
+                            Expanded(
+                              child: _field(
+                                'Height (cm)',
+                                _height,
+                                keyboard: const TextInputType.numberWithOptions(
+                                    decimal: true),
+                              ),
+                            ),
                             const SizedBox(width: 10),
-                            Expanded(child: _field('Weight (kg)', _weight, numeric: true)),
+                            Expanded(
+                              child: _field(
+                                'Weight (kg)',
+                                _weight,
+                                keyboard: const TextInputType.numberWithOptions(
+                                    decimal: true),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -94,15 +157,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calculate_outlined,
-                                  size: 16, color: AppColors.greenDeep),
+                              Icon(
+                                bmiHealthy
+                                    ? Icons.calculate_outlined
+                                    : Icons.info_outline_rounded,
+                                size: 16,
+                                color: bmiHealthy
+                                    ? AppColors.greenDeep
+                                    : AppColors.amber,
+                              ),
                               const SizedBox(width: 8),
-                              Text(
-                                'BMI 24.8 · healthy range',
-                                style: AppText.small.copyWith(
-                                  fontSize: 11,
-                                  color: AppColors.inkSoft,
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  bmiLabel,
+                                  style: AppText.small.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.inkSoft,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ],
@@ -187,6 +259,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         name: _name.text.trim().isEmpty ? null : _name.text.trim(),
                         email: _email.text.trim().isEmpty ? null : _email.text.trim(),
                         phone: _phone.text.trim(),
+                      );
+                      state.saveBodyMetrics(
+                        heightCm: heightCm,
+                        weightKg: weightKg,
                       );
                       appToast(context, 'Settings saved',
                           icon: Icons.check_circle_rounded);

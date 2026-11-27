@@ -9,6 +9,7 @@ import 'goals_screen.dart';
 import 'home_screen.dart';
 import 'menu_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import 'videos_screen.dart';
 import 'workouts_screen.dart';
 
@@ -208,7 +209,9 @@ class _DesktopRail extends StatelessWidget {
                   Expanded(child: _RailProfileRow(state: state)),
                   IconButton(
                     tooltip: 'Settings',
-                    onPressed: () => onSelect(4),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
                     icon: const Icon(
                       Icons.settings_outlined,
                       size: 18,
@@ -435,7 +438,9 @@ class _RailStreak extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Text(
-            '${state.completedToday} of ${state.todayWorkout.length} exercises today',
+            state.todayWorkout.isEmpty
+                ? 'No exercises planned today'
+                : '${state.completedToday} of ${state.todayWorkout.length} exercises today',
             style: AppText.tiny.copyWith(
               color: Colors.white.withValues(alpha: 0.55),
               fontSize: 9,

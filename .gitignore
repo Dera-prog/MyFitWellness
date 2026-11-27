@@ -58,3 +58,6 @@ app.*.map.json
 
 # Figma extraction scratch
 /.ref/
+
+# local QA session token
+/qa/.token

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/add_workout_sheet.dart';
 import '../widgets/common.dart';
 import '../widgets/energy.dart';
 import 'stopwatch_screen.dart';
@@ -151,8 +152,10 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> with SingleTickerProvid
   }
 
   Widget _statsRow(AppState state) {
-    final total = state.weeklyMinutes.fold<double>(0, (a, b) => a + b);
-    final sessions = state.weeklyMinutes.where((m) => m > 0).length;
+    final total = state.weekMinutes.fold<double>(0, (a, b) => a + b);
+    final sessions = state.weekSessions;
+    final kcal =
+        state.history.fold<int>(0, (a, e) => a + e.kcal);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
@@ -188,7 +191,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> with SingleTickerProvid
               _divider(),
               Expanded(
                 child: _stat(
-                  '${state.history.fold<int>(0, (a, e) => a + e.kcal)}',
+                  '$kcal',
                   'kcal burned',
                   Icons.local_fire_department_rounded,
                 ),
@@ -395,6 +398,7 @@ class _TodaySessionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = state.todayWorkout.length;
     final done = state.completedToday;
+    final empty = total == 0;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -412,7 +416,7 @@ class _TodaySessionCard extends StatelessWidget {
             stroke: 7,
             trackColor: AppColors.surfaceSunken,
             center: Text(
-              '$done/$total',
+              empty ? '—' : '$done/$total',
               style: AppText.h3.copyWith(fontSize: 14),
             ),
           ),
@@ -421,21 +425,32 @@ class _TodaySessionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Today · in progress', style: AppText.h3.copyWith(fontSize: 15)),
+                Text(
+                  empty ? 'Nothing planned today' : 'Today · in progress',
+                  style: AppText.h3.copyWith(fontSize: 15),
+                ),
                 const SizedBox(height: 3),
                 Text(
-                  '${state.todayMinutes} min planned · ${state.todayWorkout.length - done} left',
+                  empty
+                      ? 'Add exercises to build today\'s session'
+                      : '${state.todayMinutes} min planned · ${total - done} left',
                   style: AppText.small.copyWith(fontSize: 11.5),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: AppButton(
-                    label: 'Continue session',
+                    label: empty ? 'Add exercises' : 'Continue session',
                     height: 42,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const StopwatchScreen()),
-                    ),
+                    onTap: () {
+                      if (empty) {
+                        showAddWorkoutSheet(context);
+                        return;
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const StopwatchScreen()),
+                      );
+                    },
                   ),
                 ),
               ],

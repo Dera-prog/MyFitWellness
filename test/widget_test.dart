@@ -11,6 +11,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('MYFIT'), findsOneWidget);
+    expect(find.textContaining('MYFIT', findRichText: true), findsOneWidget);
+    expect(find.textContaining('WELLNESS', findRichText: true), findsOneWidget);
   });
 }

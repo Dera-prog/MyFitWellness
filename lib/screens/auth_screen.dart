@@ -40,8 +40,14 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_signUp && (_email.text.trim().isEmpty || _password.text.isEmpty)) {
-      appToast(context, 'Enter your email and password', icon: Icons.info_outline_rounded);
+    final email = _email.text.trim();
+    final emailValid = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+    if (!emailValid) {
+      appToast(context, 'Enter a valid email address', icon: Icons.info_outline_rounded);
+      return;
+    }
+    if (!_signUp && _password.text.isEmpty) {
+      appToast(context, 'Enter your password', icon: Icons.info_outline_rounded);
       return;
     }
     if (_signUp && (!_terms || _name.text.trim().isEmpty)) {
@@ -64,11 +70,11 @@ class _AuthScreenState extends State<AuthScreen> {
     final error = _signUp
         ? await state.signUp(
             name: _name.text.trim(),
-            email: _email.text.trim(),
+            email: email,
             password: _password.text,
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
           )
-        : await state.signIn(email: _email.text.trim(), password: _password.text);
+        : await state.signIn(email: email, password: _password.text);
     final elapsed = DateTime.now().difference(started);
     if (elapsed < const Duration(milliseconds: 700)) {
       await Future<void>.delayed(const Duration(milliseconds: 700) - elapsed);

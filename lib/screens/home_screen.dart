@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../data/app_state.dart';
@@ -318,7 +316,9 @@ class _Header extends StatelessWidget {
             _Notification(
               icon: Icons.fitness_center_rounded,
               title: 'Leg day is waiting',
-              body: 'Your 6-day streak is on the line. 24 minutes to go.',
+              body: state.streak > 0
+                  ? 'Your ${state.streak}-day streak is on the line. 24 minutes to go.'
+                  : 'A 24-minute session today starts your streak.',
               time: 'Now',
               unread: true,
             ),
@@ -332,7 +332,10 @@ class _Header extends StatelessWidget {
             _Notification(
               icon: Icons.card_membership_rounded,
               title: 'Renewal reminder',
-              body: 'General plan renews on Dec 19.',
+              body: state.planRenewsAt == null
+                  ? 'No renewal scheduled on the ${state.isPremium ? 'Premium' : 'General'} plan.'
+                  : '${state.isPremium ? 'Premium' : 'General'} plan renews on '
+                      '${MaterialLocalizations.of(context).formatMediumDate(state.planRenewsAt!)}.',
               time: '1d',
             ),
             const SizedBox(height: 8),
@@ -424,6 +427,8 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final done = state.completedToday;
     final total = state.todayWorkout.length;
+    final empty = total == 0;
+    final sets = state.todayWorkout.fold<int>(0, (a, e) => a + e.sets);
 
     return Container(
       height: 210,
@@ -500,7 +505,7 @@ class _HeroCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Push & core',
+                          empty ? 'No workout yet' : 'Push & core',
                           style: AppText.h1.copyWith(
                             color: Colors.white,
                             fontSize: 26,
@@ -508,9 +513,11 @@ class _HeroCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          done == total
-                              ? 'Workout complete — great work!'
-                              : '$done of $total done · ${state.todayMinutes} min plan',
+                          empty
+                              ? 'Add your first exercise to get started'
+                              : done == total
+                                  ? 'Workout complete — great work!'
+                                  : '$done of $total done · ${state.todayMinutes} min plan',
                           style: AppText.small.copyWith(
                             color: Colors.white.withValues(alpha: 0.55),
                             fontSize: 11,
@@ -531,23 +538,31 @@ class _HeroCard extends StatelessWidget {
                               'min',
                             ),
                             const SizedBox(width: 16),
-                            _miniStat(Icons.bolt_rounded, '420', 'kcal'),
+                            _miniStat(Icons.bolt_rounded, '$sets', 'sets'),
                           ],
                         ),
                         const SizedBox(height: 14),
                         AppButton(
-                          label: done == total
-                              ? 'Bonus round'
-                              : 'Start workout',
+                          label: empty
+                              ? 'Add workout'
+                              : done == total
+                                  ? 'Bonus round'
+                                  : 'Start workout',
                           height: 44,
                           expanded: false,
                           trailing: false,
-                          icon: Icons.play_arrow_rounded,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const StopwatchScreen(),
-                            ),
-                          ),
+                          icon: empty ? Icons.add_rounded : Icons.play_arrow_rounded,
+                          onTap: () {
+                            if (empty) {
+                              showAddWorkoutSheet(context);
+                              return;
+                            }
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const StopwatchScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -561,7 +576,7 @@ class _HeroCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '$done/$total',
+                          empty ? '—' : '$done/$total',
                           style: AppText.h2.copyWith(
                             color: Colors.white,
                             fontSize: 21,
@@ -771,7 +786,14 @@ class _WeeklyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxVal = state.weeklyMinutes.reduce(math.max);
+    final week = state.weekMinutes;
+    final maxVal = week.fold<double>(0, (a, b) => b > a ? b : a);
+    final scale = maxVal <= 0 ? 1.0 : maxVal;
+    final weekTotal = week.fold<int>(0, (a, b) => a + b.round());
+    final lastTotal = state.lastWeekMinutes;
+    final delta = lastTotal > 0
+        ? ((weekTotal - lastTotal) / lastTotal * 100).round()
+        : null;
     return AppCard(
       child: Column(
         children: [
@@ -779,31 +801,34 @@ class _WeeklyCard extends StatelessWidget {
             children: [
               Text('This week', style: AppText.h3.copyWith(fontSize: 16)),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.green.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.trending_up_rounded,
-                      size: 12,
-                      color: AppColors.greenDeep,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '+18%',
-                      style: AppText.tiny.copyWith(
-                        fontSize: 9,
+              if (delta != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        delta >= 0
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
+                        size: 12,
                         color: AppColors.greenDeep,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        '${delta >= 0 ? '+' : ''}$delta%',
+                        style: AppText.tiny.copyWith(
+                          fontSize: 9,
+                          color: AppColors.greenDeep,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -811,7 +836,7 @@ class _WeeklyCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${state.weeklyMinutes.fold<int>(0, (a, b) => a + b.round())}',
+                '$weekTotal',
                 style: AppText.h1.copyWith(fontSize: 26),
               ),
               const SizedBox(width: 5),
@@ -829,8 +854,8 @@ class _WeeklyCard extends StatelessWidget {
             height: 82,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(state.weeklyMinutes.length, (i) {
-                final v = state.weeklyMinutes[i];
+              children: List.generate(week.length, (i) {
+                final v = week[i];
                 final today = i == DateTime.now().weekday - 1;
                 return Expanded(
                   child: Padding(
@@ -839,7 +864,7 @@ class _WeeklyCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: v / maxVal),
+                          tween: Tween(begin: 0, end: v / scale),
                           duration: Duration(milliseconds: 700 + i * 60),
                           curve: Curves.easeOutCubic,
                           builder: (context, h, _) => Container(

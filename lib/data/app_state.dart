@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_theme.dart';
 import 'api_client.dart';
@@ -155,6 +156,8 @@ class AppState extends ChangeNotifier {
   bool goalCheckIns = true;
   bool renewalAlerts = true;
   bool stopwatchPaired = false;
+  double? bodyHeightCm;
+  double? bodyWeightKg;
 
   int streak = 6;
 
@@ -266,8 +269,6 @@ class AppState extends ChangeNotifier {
       intensity: 0.85,
     ),
   ];
-
-  final List<double> weeklyMinutes = [42, 61, 34, 48, 26, 55, 0];
 
   final List<FitnessGoal> goals = [
     FitnessGoal(
@@ -402,6 +403,40 @@ class AppState extends ChangeNotifier {
       todayWorkout.isEmpty ? 0 : completedToday / todayWorkout.length;
 
   int get todayMinutes => todayWorkout.fold(0, (a, e) => a + e.minutes);
+
+  /// Minutes trained per day of the current week (Monday → Sunday), derived
+  /// from the real session history.
+  List<double> get weekMinutes {
+    final now = DateUtils.dateOnly(DateTime.now());
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final values = List<double>.filled(7, 0);
+    for (final entry in history) {
+      final index = DateUtils.dateOnly(entry.date).difference(monday).inDays;
+      if (index >= 0 && index < 7) values[index] += entry.minutes.toDouble();
+    }
+    return values;
+  }
+
+  int get lastWeekMinutes {
+    final now = DateUtils.dateOnly(DateTime.now());
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final lastMonday = monday.subtract(const Duration(days: 7));
+    var total = 0;
+    for (final entry in history) {
+      final day = DateUtils.dateOnly(entry.date);
+      if (!day.isBefore(lastMonday) && day.isBefore(monday)) total += entry.minutes;
+    }
+    return total;
+  }
+
+  int get weekSessions {
+    final now = DateUtils.dateOnly(DateTime.now());
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    return history.where((entry) {
+      final day = DateUtils.dateOnly(entry.date);
+      return !day.isBefore(monday) && day.difference(monday).inDays < 7;
+    }).length;
+  }
 
   bool get isPremium => plan == PlanType.premium;
 
@@ -567,6 +602,30 @@ class AppState extends ChangeNotifier {
     });
   }
 
+  Future<void> loadBodyMetrics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      bodyHeightCm = prefs.getDouble('mfw.heightCm');
+      bodyWeightKg = prefs.getDouble('mfw.weightKg');
+      notifyListeners();
+    } catch (_) {
+      // No local storage (e.g. private mode): metrics stay session-only.
+    }
+  }
+
+  Future<void> saveBodyMetrics({double? heightCm, double? weightKg}) async {
+    if (heightCm != null) bodyHeightCm = heightCm;
+    if (weightKg != null) bodyWeightKg = weightKg;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (heightCm != null) await prefs.setDouble('mfw.heightCm', heightCm);
+      if (weightKg != null) await prefs.setDouble('mfw.weightKg', weightKg);
+    } catch (_) {
+      // Metrics remain valid for this session even if storage is unavailable.
+    }
+  }
+
   Future<String?> sendMessage(String text) async {
     final now = DateTime.now();
     chat.add(
@@ -611,6 +670,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> init() async {
     await api.loadToken();
+    await loadBodyMetrics();
     if (!api.hasToken) return;
     await refresh();
   }
